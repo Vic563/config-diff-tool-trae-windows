@@ -24,8 +24,8 @@ A powerful web-based configuration comparison tool built with React and TypeScri
 
 ```bash
 # Clone the repository
-git clone https://github.com/Vic563/config-diff-tool-trae-windows.git
-cd config-diff-tool-trae-windows
+git clone https://github.com/Vic563/config-diff-tool-trae.git
+cd config-diff-tool-trae
 
 # Install dependencies
 npm install
