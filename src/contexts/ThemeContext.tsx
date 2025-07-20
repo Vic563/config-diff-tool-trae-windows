@@ -16,7 +16,11 @@ const lightTheme: Theme = {
     removedBg: '#ffcccc',
     unchanged: '#666666',
     unchangedBg: '#ffffff',
-    border: '#e0e0e0'
+    modified: '#FF6F00',
+    modifiedBg: '#FFF3E0',
+    border: '#e0e0e0',
+    error: '#d32f2f',
+    errorBg: '#ffebee'
   }
 };
 
@@ -35,7 +39,11 @@ const darkTheme: Theme = {
     removedBg: '#5d1f1f',
     unchanged: '#b3b3b3',
     unchangedBg: '#1e1e1e',
-    border: '#333333'
+    modified: '#FFA726',
+    modifiedBg: '#3E2723',
+    border: '#333333',
+    error: '#ef5350',
+    errorBg: '#311b1b'
   }
 };
 

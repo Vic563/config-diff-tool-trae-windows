@@ -1,47 +1,99 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Header } from './components/Header';
 import { ConfigInput } from './components/ConfigInput';
 import { DiffViewer } from './components/DiffViewer';
 import { ExportButtons } from './components/ExportButtons';
-import { ConfigDiffEngine } from './utils/diffEngine';
-import { DiffLine, DiffStats as DiffStatsType } from './types';
+import { useDiff } from './hooks/useDiff';
+import { isDiffError } from './types';
+
+// Styled components for better organization (could be moved to a separate file)
+const buttonStyles = {
+  primary: {
+    backgroundColor: '#1976d2',
+    hoverColor: '#1565c0',
+  },
+  secondary: {
+    backgroundColor: '#757575',
+    hoverColor: '#616161',
+  },
+  base: {
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '12px 30px',
+    fontSize: '16px',
+    fontWeight: 'bold' as const,
+    cursor: 'pointer',
+    marginRight: '10px',
+    transition: 'all 0.3s ease',
+  },
+};
+
+const Button: React.FC<{
+  onClick: () => void;
+  style: 'primary' | 'secondary';
+  children: React.ReactNode;
+  disabled?: boolean;
+}> = ({ onClick, style, children, disabled = false }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      ...buttonStyles.base,
+      backgroundColor: buttonStyles[style].backgroundColor,
+      opacity: disabled ? 0.6 : 1,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+    }}
+    onMouseEnter={(e) => 
+      (e.currentTarget.style.backgroundColor = buttonStyles[style].hoverColor)
+    }
+    onMouseLeave={(e) => 
+      (e.currentTarget.style.backgroundColor = buttonStyles[style].backgroundColor)
+    }
+  >
+    {children}
+  </button>
+);
+
+const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
+  <div
+    style={{
+      backgroundColor: '#f44336',
+      color: 'white',
+      padding: '10px 20px',
+      borderRadius: '4px',
+      marginBottom: '20px',
+      textAlign: 'center',
+    }}
+  >
+    {message}
+  </div>
+);
 
 function AppContent() {
-  const [preConfig, setPreConfig] = useState('');
-  const [postConfig, setPostConfig] = useState('');
-  const [diffLines, setDiffLines] = useState<DiffLine[]>([]);
-  const [stats, setStats] = useState<DiffStatsType | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    // State
+    preConfig,
+    postConfig,
+    diffLines,
+    stats,
+    error,
+    isLoading,
+    
+    // Actions
+    calculateDiff,
+    reset,
+    updatePreConfig,
+    updatePostConfig,
+  } = useDiff();
 
-  const performDiff = () => {
-    try {
-      setError(null);
-
-      if (!preConfig.trim() || !postConfig.trim()) {
-        setError('Please provide both pre and post configurations');
-        return;
-      }
-
-      const engine = new ConfigDiffEngine();
-      engine.setConfigs(preConfig, postConfig);
-      
-      const lines = engine.getLineDiff();
-      const diffStats = engine.getStats();
-      
-      setDiffLines(lines);
-      setStats(diffStats);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while calculating diff');
-    }
+  const handlePreConfigChange = (value: string) => {
+    updatePreConfig(value);
   };
 
-  const clearAll = () => {
-    setPreConfig('');
-    setPostConfig('');
-    setDiffLines([]);
-    setStats(null);
-    setError(null);
+  const handlePostConfigChange = (value: string) => {
+    updatePostConfig(value);
   };
 
   return (
@@ -53,71 +105,43 @@ function AppContent() {
           <ConfigInput
             title="Pre-Configuration"
             value={preConfig}
-            onChange={setPreConfig}
+            onChange={handlePreConfigChange}
+            disabled={isLoading}
           />
           <ConfigInput
             title="Post-Configuration"
             value={postConfig}
-            onChange={setPostConfig}
+            onChange={handlePostConfigChange}
+            disabled={isLoading}
           />
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <button
-            onClick={performDiff}
-            style={{
-              backgroundColor: '#1976d2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '12px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              marginRight: '10px',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1565c0'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1976d2'}
+          <Button 
+            onClick={calculateDiff}
+            style="primary"
+            disabled={isLoading}
           >
-            Compare Configurations
-          </button>
-          <button
-            onClick={clearAll}
-            style={{
-              backgroundColor: '#757575',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '12px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#616161'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#757575'}
+            {isLoading ? 'Comparing...' : 'Compare Configurations'}
+          </Button>
+          <Button 
+            onClick={reset}
+            style="secondary"
+            disabled={isLoading}
           >
             Clear All
-          </button>
+          </Button>
         </div>
 
         {error && (
-          <div style={{
-            backgroundColor: '#f44336',
-            color: 'white',
-            padding: '10px 20px',
-            borderRadius: '4px',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            {error}
-          </div>
+          <ErrorMessage message={
+            isDiffError(error) ? error.message : 'An unknown error occurred'
+          } />
         )}
 
-        {diffLines.length > 0 && (
+        {diffLines.length > 0 && stats && (
           <>
-            <ExportButtons diffLines={diffLines} stats={stats!} />
+            <ExportButtons diffLines={diffLines} stats={stats} />
             <DiffViewer diffLines={diffLines} />
           </>
         )}

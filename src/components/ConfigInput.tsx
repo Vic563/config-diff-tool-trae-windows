@@ -6,13 +6,15 @@ interface ConfigInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const ConfigInput: React.FC<ConfigInputProps> = ({
   title,
   value,
   onChange,
-  placeholder = 'Paste your configuration here...'
+  placeholder = 'Paste your configuration here...',
+  disabled = false
 }) => {
   const { theme } = useTheme();
 
@@ -40,6 +42,7 @@ export const ConfigInput: React.FC<ConfigInputProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        disabled={disabled}
         style={{
           width: '100%',
           flex: 1,
